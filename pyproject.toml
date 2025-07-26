@@ -1,0 +1,14 @@
+[project]
+name = "gmx_tracker"
+version = "0.0.3"
+authors = [
+]
+description = "Tool for real-time GROMACS performance measurement and tuning"
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+[project.scripts]
+gmx_tracker= "gmx_tracker.__main__:main"
