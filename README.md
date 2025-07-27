@@ -62,4 +62,7 @@ gmx mdrun -s file.tpr -ntomp 6 -bonded gpu -update cpu
 ```
 
 > [!IMPORTANT]
-> Looking for ideas how to define paralell simulations...
+> Looking for ideas how to define paralell simulations... I implemented one, but I'm not sure if it's good. 
+
+> [!IMPORTANT]
+> Not sure how to specify enviromental variables in a file... 

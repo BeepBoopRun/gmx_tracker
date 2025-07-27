@@ -7,9 +7,10 @@ name = "gmx_tracker"
 version = "0.0.3"
 authors = [
 ]
-description = "Tool for real-time GROMACS performance measurement and tuning"
+description = "Tool for real-time GROMACS performance measurement and tuning."
 readme = "README.md"
 requires-python = ">=3.6"
+license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
