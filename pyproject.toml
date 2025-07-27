@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=64.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "gmx_tracker"
 version = "0.0.3"

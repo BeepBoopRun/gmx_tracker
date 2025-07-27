@@ -18,9 +18,8 @@ from datetime import datetime
 from typing import NamedTuple
 import subprocess
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-from simulation_handler import Simulation
-from rundir_analysis import minimum_performance_window, get_hardware_information, get_failing_patterns
+from .simulation_handler import Simulation
+from .rundir_analysis import minimum_performance_window, get_hardware_information, get_failing_patterns
 
 NUMBER_OF_BEST_TO_TRY = 2
 BIG_MESSAGE_WIDTH = 40

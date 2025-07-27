@@ -7,7 +7,7 @@ from pathlib import Path
 import logging
 import threading
 from typing import TypeVar
-from rundir_analysis import *
+from .rundir_analysis import *
 from bisect import bisect_left,bisect_right
 
 SECONDS_IN_DAY = 24 * 60 * 60
