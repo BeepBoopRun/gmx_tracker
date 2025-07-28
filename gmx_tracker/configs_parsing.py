@@ -6,7 +6,7 @@ import itertools
 ILLEGAL_PATTERNS = [
     ["-pme", "cpu", "-pmefft", "gpu"],
     ["-nb", "cpu", "-bonded", "gpu"],
-    ["-pme", "gpu", "-nb", "cpu"]
+    ["-pme", "gpu", "-nb", "cpu"],
 ]
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,7 @@ def filter_simulations(
             result.append(sim)
     return result
 
+
 def check_if_equal_simulations(left: list[str], right: list[str]) -> bool:
     return contains_pattern(left, right) and contains_pattern(right, left)
 
@@ -89,15 +90,19 @@ def deduplicate_simulations(simulation_list: list[list[str]]) -> list[list[str]]
             result.append(sim)
     return result
 
+
 def deduplicate_simulation_pools(simulation_pool: list[list[list[str]]]):
     result = []
     for group in simulation_pool:
         if not result:
             result.append(group)
             continue
-        if not any([check_if_equal_simulation_group(group, included) for included in result]):
+        if not any(
+            [check_if_equal_simulation_group(group, included) for included in result]
+        ):
             result.append(group)
     return result
+
 
 def parse_simulation(raw_input: str | list[str]) -> list[list[str]]:
     args = raw_input if isinstance(raw_input, list) else raw_input.split()
@@ -170,7 +175,9 @@ def get_all_simulation_configs(
     return simulation_pool
 
 
-def check_if_equal_simulation_group(left: list[list[str]], right: list[list[str]]) -> bool:
+def check_if_equal_simulation_group(
+    left: list[list[str]], right: list[list[str]]
+) -> bool:
     if len(left) != len(right):
         return False
     left = left.copy()
@@ -186,7 +193,6 @@ def check_if_equal_simulation_group(left: list[list[str]], right: list[list[str]
             return False
         right.pop(idx_of_identical)
     return True
-
 
 
 def parse_raw(raw_input: str) -> list[list[list[str]]]:
@@ -241,17 +247,21 @@ def parse_raw(raw_input: str) -> list[list[list[str]]]:
         expanded_groups = []
         for config in group:
             expanded_group = parse_simulation(config)
-            expanded_group = filter_simulations(expanded_group, expanded_paterns + ILLEGAL_PATTERNS)
+            expanded_group = filter_simulations(
+                expanded_group, expanded_paterns + ILLEGAL_PATTERNS
+            )
 
             if not expanded_group:
-                print(f'Entire line: "{config}" matches a remove pattern! ' 
-                      'Removing it and simulations it would run in paralell with from the pool...')
+                print(
+                    f'Entire line: "{config}" matches a remove pattern! '
+                    "Removing it and simulations it would run in paralell with from the pool..."
+                )
 
             expanded_groups.append(expanded_group)
         result.extend([list(group) for group in itertools.product(*expanded_groups)])
 
     for configs in result:
-        for i,config in enumerate(configs):
+        for i, config in enumerate(configs):
             if config[-1].startswith("#"):
                 config.remove(config[-1])
 

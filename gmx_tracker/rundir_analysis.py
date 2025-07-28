@@ -83,7 +83,7 @@ def graph_performance(run_dir: Path, path_to_logfile, add=False):
         plt.show()
 
 
-def parse_mdlog(log_file_or_run_dir: Path) -> dict[str,str] | None:
+def parse_mdlog(log_file_or_run_dir: Path) -> dict[str, str] | None:
     """Creates a nested dictionary with key-value pairs from mdlog."""
     logfile = None
     if log_file_or_run_dir.suffix == ".log":
@@ -138,10 +138,11 @@ def parse_mdlog(log_file_or_run_dir: Path) -> dict[str,str] | None:
 
             last_leading_whitespace = leading_whitespace
             last_line = line
-    
+
     return result
 
-def get_stripped_mdlog(log_file_or_run_dir: Path) -> str|None:
+
+def get_stripped_mdlog(log_file_or_run_dir: Path) -> str | None:
     """Creates a nested dictionary with key-value pairs from mdlog."""
     logfile = None
     if log_file_or_run_dir.suffix == ".log":
@@ -178,8 +179,9 @@ def get_stripped_mdlog(log_file_or_run_dir: Path) -> str|None:
                 continue
 
             stripped_mdlog += line
-    
+
     return stripped_mdlog
+
 
 class HardwareInformation(NamedTuple):
     cores: int
@@ -203,9 +205,12 @@ def get_hardware_information(run_dir: Path) -> HardwareInformation | None:
 
         cpu_data = re.findall(r"(\d*) cores, (\d*) processing units", file_s)[0]
         gpu_data = re.findall(r"(\d*) compatible GPU", file_s)
-    
-    return HardwareInformation(cores=int(cpu_data[0]), threads=int(cpu_data[1]), GPUs=int(gpu_data[0]) if gpu_data else 0)
 
+    return HardwareInformation(
+        cores=int(cpu_data[0]),
+        threads=int(cpu_data[1]),
+        GPUs=int(gpu_data[0]) if gpu_data else 0,
+    )
 
 
 def get_failing_patterns(run_dir: Path) -> list[list[str]]:

@@ -8,7 +8,7 @@ import logging
 import threading
 from typing import TypeVar
 from .rundir_analysis import *
-from bisect import bisect_left,bisect_right
+from bisect import bisect_left, bisect_right
 
 SECONDS_IN_DAY = 24 * 60 * 60
 PICOSECONDS_IN_NANOSECOND = 1000
@@ -144,7 +144,6 @@ class Simulation:
                 if "timed with pme" in line:
                     self.last_tunepme_step = step_value
 
-
         csvhandle.close()
         outfile_handle.close()
 
@@ -235,7 +234,6 @@ class Simulation:
     def performance(self, start_step: int, end_step: int) -> float | None:
         """Calculate performance between given steps, returns None if they don't exist."""
 
-
         idx_start_step = self.find_step(start_step)
         idx_end_step = self.find_step(end_step)
 
@@ -244,7 +242,9 @@ class Simulation:
             return None
 
         if idx_start_step is None or idx_end_step is None:
-            logger.warning(f"Couldn't find steps needed to computer performance, steps used: ({start_step},{end_step})")
+            logger.warning(
+                f"Couldn't find steps needed to computer performance, steps used: ({start_step},{end_step})"
+            )
             return None
 
         start_time = self.times[idx_start_step]
@@ -269,7 +269,7 @@ class Simulation:
             or step < 0
         ):
             return None
-        
+
         i = bisect_left(self.steps, step)
         if i != len(self.steps) and self.steps[i] == step:
             return i

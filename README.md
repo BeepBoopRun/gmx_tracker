@@ -1,7 +1,9 @@
 # Introduction
 
-To install, in project directory, do: 
+To install, do: 
 ```
+git clone https://github.com/BeepBoopRun/gmx_tracker
+cd gmx_tracker
 pip3 install .
 ```
 
@@ -9,28 +11,27 @@ To use, do for example:
 ```
 python3 -m gmx_tracker -e --sim-directory SOME_PATH/sim_files/ -c "gmx mdrun -s file.tpr -ntomp 8|16|24"
 ```
-This command will 3 GROMACS simulations:
+This command will run 3 GROMACS simulations:
 ```
 gmx mdrun -s file.tpr -ntomp 8
 gmx mdrun -s file.tpr -ntomp 16
 gmx mdrun -s file.tpr -ntomp 24
 ```
-For each performance will be measured and displayed.
+For each performance will be measured and displayed in real-time.
 
 ## Why use this?
 With new versions of GROMACS, there are more and more options we can choose from to get extra performance or efficiency. We belive that this tool can be useful to navigate those options. It allows one to tersly describe many different configurations you might want to try. 
 
 In the example above, the user can quickly check how many threads are actually needed for performance. This is useful in queue systems like SLURM, where additional resources might come with actual costs or queing penalties.  
 
-Similar tests can be done in systems with many graphics cards, for example in a system with MIG set up. By specyfing __-gpu_id 0|1|2|3__ user can see how performant the simulation would be on all instances, later choosing one that bests suits his needs. 
+Similar tests can be done in systems with many graphics cards, for example in a system with MIG set up. By specifing __-gpu_id 0|1|2|3__ user can see how performant the simulation would be on all instances, later choosing one that bests suits their needs. 
 
 ## File syntax
 #### Inside the file, you can define all configurations for which you want performance to be measured.  
 ```markdown
-# This is a comment
 gmx mdrun -s file.tpr -ntomp 6 -gpu_id 0
+# This is a comment
 gmx mdrun -s file.tpr -ntomp 12 -gpu_id 1
-...
 gmx mdrun -s file.tpr -ntomp 18 -gpu_id 0,1
 ```
 #### Comments with # and empty lines are allowed and will be ignored during parsing.

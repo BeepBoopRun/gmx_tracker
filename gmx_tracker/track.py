@@ -1,4 +1,3 @@
-
 # TODO: Account for load balancing hard. Suprisingly tricky, as it doesn't always show up.
 
 from datetime import datetime
@@ -19,7 +18,11 @@ from typing import NamedTuple
 import subprocess
 
 from .simulation_handler import Simulation
-from .rundir_analysis import minimum_performance_window, get_hardware_information, get_failing_patterns
+from .rundir_analysis import (
+    minimum_performance_window,
+    get_hardware_information,
+    get_failing_patterns,
+)
 from .configs_parsing import *
 
 BIG_MESSAGE_WIDTH = 40
@@ -34,8 +37,9 @@ MAXIMUM_PERCENT_CHANGE = 0.03
 ILLEGAL_PATTERNS = [
     ["-pme", "cpu", "-pmefft", "gpu"],
     ["-nb", "cpu", "-bonded", "gpu"],
-    ["-pme", "gpu", "-nb", "cpu"]
+    ["-pme", "gpu", "-nb", "cpu"],
 ]
+
 
 class SimulationStatus(Enum):
     # TODO: More could be added depending on reason of failure
@@ -81,32 +85,42 @@ class SimulationGroupResult(NamedTuple):
     @property
     def total_performance(self) -> float:
         return round(sum([result.performance for result in self.sim_results]), 3)
-    
+
     @property
     def total_steps(self) -> float:
         return sum([result.steps_done for result in self.sim_results])
-    
+
     @property
     def overall_status(self) -> SimulationStatus:
-        return SimulationStatus.Success if all([result.status is SimulationStatus.Success for result in self.sim_results]) else SimulationStatus.Failure
-
-    
+        return (
+            SimulationStatus.Success
+            if all(
+                [
+                    result.status is SimulationStatus.Success
+                    for result in self.sim_results
+                ]
+            )
+            else SimulationStatus.Failure
+        )
 
     def __str__(self):
-    
+
         statuses = ""
         for sub_id, status in enumerate([result.status for result in self.sim_results]):
             statuses += f"  {sub_id}: {status.name}\n"
 
         perfs = ""
-        for sub_id, perf in enumerate([result.performance for result in self.sim_results]):
+        for sub_id, perf in enumerate(
+            [result.performance for result in self.sim_results]
+        ):
             perfs += f"  {sub_id}: {round(perf, 3)}\n"
 
         steps = ""
-        for sub_id, step in enumerate([result.steps_done for result in self.sim_results]):
+        for sub_id, step in enumerate(
+            [result.steps_done for result in self.sim_results]
+        ):
             steps += f"  {sub_id}: {step}\n"
 
-        
         return f"""\
 Config ID: {self.config_id}
 Status: {self.overall_status.name}
@@ -115,7 +129,6 @@ Total measured performance: {self.total_performance} [ns/day]
 {perfs[:-1]}
 Total steps done: {self.total_steps}
 {steps[:-1]}"""
-
 
 
 def get_numeric_suffix(name: str) -> int:
@@ -149,7 +162,7 @@ def specify_hardware_usage(
     if OpenMPthreads is not None:
         assert OpenMPthreads > 0
         simulation = remove_argument(simulation, "-ntomp")
-        simulation += ["-ntomp", str(OpenMPthreads//(gpu_count or 1))]
+        simulation += ["-ntomp", str(OpenMPthreads // (gpu_count or 1))]
 
     if pin_offset is not None:
         assert pin_offset >= 0
@@ -170,13 +183,19 @@ def specify_hardware_usage(
         simulation += ["-gpu_id", ",".join([str(gpu) for gpu in gpu_ids])]
 
     env = os.environ
-    env["CUDA_VISIBLE_DEVICES"]= (",".join([str(gpu_id) for gpu_id in gpu_ids]) if gpu_ids is not None else "")
-    return (simulation,env)
+    env["CUDA_VISIBLE_DEVICES"] = (
+        ",".join([str(gpu_id) for gpu_id in gpu_ids]) if gpu_ids is not None else ""
+    )
+    return (simulation, env)
+
 
 def stringify_arguments(args: list[str]) -> str:
     return " ".join(args)
 
-def running_sim_summary(sim: Simulation, config_id: int, config_sub_id: int = 0) -> None:
+
+def running_sim_summary(
+    sim: Simulation, config_id: int, config_sub_id: int = 0
+) -> None:
     tune_status = "Finished" if sim.is_tuned() else "In progress"
     format = lambda x: round(x, ROUND_PRECISION) if x is not None else "NA"
     optimal_window = minimum_performance_window(sim.run_dir)
@@ -230,10 +249,16 @@ def stop_policy(sim: Simulation):
 
     return ratio > 1 - MAXIMUM_PERCENT_CHANGE and ratio < 1 + MAXIMUM_PERCENT_CHANGE
 
-def run_simulations(sims: list[Simulation], config_id: int=0, early_stop: bool=True, print_info: bool=True) -> SimulationGroupResult:
+
+def run_simulations(
+    sims: list[Simulation],
+    config_id: int = 0,
+    early_stop: bool = True,
+    print_info: bool = True,
+) -> SimulationGroupResult:
     for sim in sims:
         sim.start()
-    
+
     assert all([sim.gmx_process is not None for sim in sims])
     start_time = datetime.now()
     sims_info: list[dict[str, int]] = [{"last_step": 0}.copy() for sim in sims]
@@ -272,24 +297,29 @@ def run_simulations(sims: list[Simulation], config_id: int=0, early_stop: bool=T
                 )
                 or 0.0
             )
-        results.append(SimulationResult(
-            config_id=config_id,
-            config_sub_id=sub_id,
-            status=SimulationStatus.Success if len(sim.steps) > 1 else SimulationStatus.Failure,
-            gmx_arguments=" ".join(sim.gmx_arguments),
-            performance=perf,
-            steps_done=sim.steps[-1] if len(sim.steps) > 0 else 0,
-            run_dir=sim.run_dir
-        ))
+        results.append(
+            SimulationResult(
+                config_id=config_id,
+                config_sub_id=sub_id,
+                status=(
+                    SimulationStatus.Success
+                    if len(sim.steps) > 1
+                    else SimulationStatus.Failure
+                ),
+                gmx_arguments=" ".join(sim.gmx_arguments),
+                performance=perf,
+                steps_done=sim.steps[-1] if len(sim.steps) > 0 else 0,
+                run_dir=sim.run_dir,
+            )
+        )
 
-    return SimulationGroupResult(
-        config_id=config_id,
-        sim_results=results
-    )
+    return SimulationGroupResult(config_id=config_id, sim_results=results)
+
 
 def old_main():
     sys.exit(1)
     from gmx_tracker.cli import handle_commandline
+
     args = handle_commandline()
 
     simulation_pool = []
@@ -424,8 +454,8 @@ def old_main():
         current_run_dir = run_dir_path.joinpath(f"RUN_{id}")
 
         print(f"SIMULATION NR {id}".center(30, "-"))
-        
-        failed_by_deault = filter_simulations([sim_config], failing_patterns) == [] 
+
+        failed_by_deault = filter_simulations([sim_config], failing_patterns) == []
 
         if not failed_by_deault:
             print(f"RUN DIRECTORY: {current_run_dir}")
@@ -462,7 +492,6 @@ def old_main():
 
             if args.early_stop and stop_policy(sim):
                 sim.kill()
-            
 
         status = (
             SimulationStatus.Success if len(sim.steps) > 0 else SimulationStatus.Failure
@@ -543,8 +572,6 @@ def old_main():
             writer = csv.writer(f)
             writer.writerow(SimulationGroupResult._fields)
 
-
-
         print(f"{sims_paralell} RUNS PARALELL".center(BIG_MESSAGE_WIDTH, "-"))
         configurations = [
             config
@@ -581,7 +608,7 @@ def old_main():
                     if available_gpus > 0
                     else None
                 )
-                gmx_args,gmx_env = specify_hardware_usage(
+                gmx_args, gmx_env = specify_hardware_usage(
                     simulation=gmx_args,
                     OpenMPthreads=available_threads,
                     pin_offset=pin_offset,
