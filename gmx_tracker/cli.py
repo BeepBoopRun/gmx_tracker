@@ -153,7 +153,7 @@ def main():
         for subdir in run_dir_path.iterdir():
             if not subdir.is_dir():
                 continue
-            if subdir.name.startswith("RUN_"):
+            if subdir.name.startswith("CONFIG_"):
                 is_used = True
         if is_used:
             print(
