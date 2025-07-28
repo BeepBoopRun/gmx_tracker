@@ -82,7 +82,7 @@ def handle_commandline():
     parser.add_argument(
         "--only-configurations",
         action="store_true",
-        help="TODO! Add this back. Stops the program after printing configurations.",
+        help="TODO! Add this back.Stops the program after printing configurations.",
     )
 
     args = parser.parse_args()
@@ -137,7 +137,7 @@ def main():
     necesarry_sim_files = [x for x in sim_files_dir.iterdir()]
 
     print("SIMULATION DIRECTORY".center(BIG_MESSAGE_WIDTH, "-"))
-    print(f"SIM DIR: {sim_files_dir}")
+    print(f'SIM DIR: {sim_files_dir}')
 
     print("RUNS DIRECTORY".center(BIG_MESSAGE_WIDTH, "-"))
 
@@ -174,10 +174,10 @@ def main():
             )
 
             run_dir_path = run_dir_path.parent.joinpath(
-                f"{stripped_basename}_{max_number_suffix+1}"
+                f'{stripped_basename}_{max_number_suffix+1}'
             )
 
-    print(f"RUNS DIR: {run_dir_path}")
+    print(f'RUNS DIR: {run_dir_path}')
     run_dir_path.mkdir(parents=True, exist_ok=True)
 
     cli_log = run_dir_path.joinpath("cli.log")
@@ -200,8 +200,8 @@ def main():
         for sub_id, config in enumerate(configs):
             run_dir = config_dir.joinpath(f"{sub_id}")
             run_dir.mkdir(parents=True, exist_ok=True)
-            print(f"CONFIG {id}.{sub_id}: {" ".join(config)}")
-            print(f"CONFIG {id}.{sub_id} DIR: {run_dir}")
+            print(f'CONFIG {id}.{sub_id}: {" ".join(config)}')
+            print(f'CONFIG {id}.{sub_id} DIR: {run_dir}')
             simulations.append(Simulation(
                 gmx_arguments=config,
                 run_dir=run_dir,
@@ -217,7 +217,7 @@ def main():
     results = [res for res in results if res.overall_status == SimulationStatus.Success]
     results.sort(key=lambda x: x.total_performance, reverse=True)
     for res in results:
-        print(f"Config ID: {res.config_id} Total performance: {res.total_performance} Total steps done: {res.total_steps}")
+        print(f'Config ID: {res.config_id} Total performance: {res.total_performance} Total steps done: {res.total_steps}')
 
 
     
