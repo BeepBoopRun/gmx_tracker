@@ -52,8 +52,8 @@ def get_available_tuning_options(
 
     get_available_tuning_options_cache.append([args_to_call_mdrun, gmx_args])
     if print_info:
-        print(f"For version: {" ".join(args_to_call_mdrun)}")
-        print(f"Available arguments: {" ".join(gmx_args)}")
+        print(f'For version: {" ".join(args_to_call_mdrun)}')
+        print(f'Available arguments: {" ".join(gmx_args)}')
 
     return gmx_args
 
