@@ -125,7 +125,7 @@ def main():
     print("CONFIGURATIONS TO TEST".center(BIG_MESSAGE_WIDTH, "-"))
     for id, configs in enumerate(simulation_pool):
         for sub_id, config in enumerate(configs):
-            print(f"CONFIG {id}.{sub_id}: {" ".join(config)}")
+            print(f'CONFIG {id}.{sub_id}: {" ".join(config)}')
 
     if args.only_configurations:
         return os.EX_OK
