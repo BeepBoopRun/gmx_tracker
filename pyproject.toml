@@ -16,4 +16,4 @@ classifiers = [
 ]
 
 [project.scripts]
-gmx_tracker= "gmx_tracker.__main__:main"
+gmx_tracker= "gmx_tracker.cli:main"
