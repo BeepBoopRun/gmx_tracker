@@ -64,13 +64,31 @@ gmx mdrun -s file.tpr -ntomp 6 -bonded gpu -update cpu
 
 #### Configurations that are right next to each other and share the @ symbol will be run in paralell.
 ```markdown
-@gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update cpu -pinoffset 0
-@gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update cpu -pinoffset 6
+@gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update cpu
+@gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update cpu
 
-@gmx mdrun -s file.tpr -ntomp 12 -bonded cpu -update cpu -pinoffset 0
-@gmx mdrun -s file.tpr -ntomp 12 -bonded cpu -update cpu -pinoffset 12
+@gmx mdrun -s file.tpr -ntomp 12 -bonded cpu -update cpu
+@gmx mdrun -s file.tpr -ntomp 12 -bonded cpu -update cpu
 ```
 #### First pair will run in paralell, as well as the second pair. Empty spaces separate what should run together.
+
+#### Symbols can be combined. The following is correct syntax:
+```markdown
+@gmx mdrun -s file.tpr -ntomp 6|12 -bonded cpu -update cpu
+@gmx mdrun -s file.tpr -ntomp 6|12 -bonded cpu -update cpu
+
+# changes into...
+@gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update cpu
+@gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update cpu
+
+@gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update cpu
+@gmx mdrun -s file.tpr -ntomp 12 -bonded cpu -update cpu
+
+@gmx mdrun -s file.tpr -ntomp 12 -bonded cpu -update cpu
+@gmx mdrun -s file.tpr -ntomp 12 -bonded cpu -update cpu
+```
+#### Simulations are deduplicated by default. 
+
 
 > [!IMPORTANT]
 > Not sure how to specify enviromental variables in a file... 
