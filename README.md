@@ -1,4 +1,4 @@
-# Not yet finished, but close \\[*]/
+# Introduction
 
 To install, in project directory, do: 
 ```
@@ -7,10 +7,22 @@ pip3 install .
 
 To use, do for example: 
 ```
-python3 -m gmx_tracker -e --sim-directory SOME_PATH/sim_files/benchMEM -c "gmx mdrun -s file.tpr -ntomp 8|16|32"
+python3 -m gmx_tracker -e --sim-directory SOME_PATH/sim_files/ -c "gmx mdrun -s file.tpr -ntomp 8|16|24"
 ```
-This runs the simulation 3 times, each time with different value for the -ntomp argument. Flag -e means that the simulations will end the moment their performance is stable.
+This command will 3 GROMACS simulations:
+```
+gmx mdrun -s file.tpr -ntomp 8
+gmx mdrun -s file.tpr -ntomp 16
+gmx mdrun -s file.tpr -ntomp 24
+```
+For each performance will be measured and displayed.
 
+## Why use this?
+With new versions of GROMACS, there are more and more options we can choose from to get extra performance or efficiency. We belive that this tool can be useful to navigate those options. It allows one to tersly describe many different configurations you might want to try. 
+
+In the example above, the user can quickly check how many threads are actually needed for performance. This is useful in queue systems like SLURM, where additional resources might come with actual costs or queing penalties.  
+
+Similar tests can be done in systems with many graphics cards, for example in a system with MIG set up. By specyfing __-gpu_id 0|1|2|3__ user can see how performant the simulation would be on all instances, later choosing one that bests suits his needs. 
 
 ## File syntax
 #### Inside the file, you can define all configurations for which you want performance to be measured.  
@@ -98,4 +110,4 @@ gmx mdrun -s file.tpr -ntomp 6 -bonded gpu -update cpu
 
 
 > [!IMPORTANT]
-> Not sure how to specify enviromental variables in a file... 
+> Not sure how to specify enviromental variables in the file... 
