@@ -2,8 +2,15 @@
 
 To install, in project directory, do: 
 ```
-pip install .
+pip3 install .
 ```
+
+To use, do for example: 
+```
+python3 -m gmx_tracker -e --sim-directory SOME_PATH/sim_files/benchMEM -c "gmx mdrun -s file.tpr -ntomp 8|16|32"
+```
+This runs the simulation 3 times, each time with different value for the -ntomp argument. Flag -e means that the simulations will end the moment their performance is stable.
+
 
 ## File syntax
 #### Inside the file, you can define all configurations for which you want performance to be measured.  

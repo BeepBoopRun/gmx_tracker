@@ -91,10 +91,7 @@ def deduplicate_simulations(simulation_list: list[list[str]]) -> list[list[str]]
 
 def deduplicate_simulation_pools(simulation_pool: list[list[list[str]]]):
     result = []
-    for x in (simulation_pool):
-        print(f"IN POOL: {x}")
     for group in simulation_pool:
-        print(f"INTERMEDIATE: {result}")
         if not result:
             result.append(group)
             continue

@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from .configs_parsing import parse_raw
 from .simulation_handler import Simulation
-from .track import run_simulations, SimulationGroupResult, SimulationStatus, SimulationResult
+from .track import run_simulations, get_failing_patterns, filter_simulations, check_if_equal_simulations, SimulationGroupResult, SimulationStatus, SimulationResult
 import os
 import re
 import logging
@@ -192,12 +192,20 @@ def main():
     
     results: list[SimulationGroupResult] = [] 
 
+    failing_patterns: list[list[str]] = []
+    failed_by_deault = False
+
     for id, configs in enumerate(simulation_pool):
         print(f"SIMULATION NR {id}".center(30, "-"))
         config_dir = run_dir_path.joinpath(f"CONFIG_{id}")
         config_dir.mkdir(parents=True, exist_ok=True)
         simulations: list[Simulation] = []
         for sub_id, config in enumerate(configs):
+            failed_by_deault = filter_simulations([config], failing_patterns) == [] 
+            if failed_by_deault:
+                print(f'FAILING CONFIG {id}.{sub_id}: {" ".join(config)}')
+                print(f'Failing is based on previous runs.')
+                break
             run_dir = config_dir.joinpath(f"{sub_id}")
             run_dir.mkdir(parents=True, exist_ok=True)
             print(f'CONFIG {id}.{sub_id}: {" ".join(config)}')
@@ -208,16 +216,28 @@ def main():
                 necesarry_files=necesarry_sim_files,
 
             ))
-        config_results = run_simulations(simulations, early_stop=args.early_stop, config_id=id)
-        print(f"RESULT NR {id}".center(30, "-"))
-        print(config_results)
-        results.append(config_results)
+        if not failed_by_deault:
+            config_results = run_simulations(simulations, early_stop=args.early_stop, config_id=id)
+            print(f"RESULT NR {id}".center(30, "-"))
+            print(config_results)
+            results.append(config_results)
+
+            if config_results.overall_status == SimulationStatus.Failure:
+                for sim in config_results.sim_results:
+                    if sim.status == SimulationStatus.Failure:
+                        pattern = get_failing_patterns(sim.run_dir)
+                        if pattern:
+                            already_on_list = filter_simulations(pattern, failing_patterns) == [] 
+                            if already_on_list:
+                                continue
+                            failing_patterns.extend(pattern)
 
     print("OVERALL RESULTS".center(BIG_MESSAGE_WIDTH, "-"))
     results = [res for res in results if res.overall_status == SimulationStatus.Success]
     results.sort(key=lambda x: x.total_performance, reverse=True)
     for res in results:
-        print(f'Config ID: {res.config_id} Total performance: {res.total_performance} Total steps done: {res.total_steps}')
+        print(f'Config ID: {res.config_id} Total performance: {res.total_performance} [ns/day] Total steps done: {res.total_steps}')
+
 
 
     
