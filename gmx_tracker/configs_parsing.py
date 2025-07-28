@@ -2,6 +2,12 @@ import subprocess
 import logging
 import itertools
 
+# based on GROMACS 2025.1
+ILLEGAL_PATTERNS = [
+    ["-pme", "cpu", "-pmefft", "gpu"],
+    ["-nb", "cpu", "-bonded", "gpu"],
+    ["-pme", "gpu", "-nb", "cpu"]
+]
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +71,9 @@ def filter_simulations(
             result.append(sim)
     return result
 
+def check_if_equal_simulations(left: list[str], right: list[str]) -> bool:
+    return contains_pattern(left, right) and contains_pattern(right, left)
+
 
 def deduplicate_simulations(simulation_list: list[list[str]]) -> list[list[str]]:
     result = []
@@ -80,6 +89,18 @@ def deduplicate_simulations(simulation_list: list[list[str]]) -> list[list[str]]
             result.append(sim)
     return result
 
+def deduplicate_simulation_pools(simulation_pool: list[list[list[str]]]):
+    result = []
+    for x in (simulation_pool):
+        print(f"IN POOL: {x}")
+    for group in simulation_pool:
+        print(f"INTERMEDIATE: {result}")
+        if not result:
+            result.append(group)
+            continue
+        if not any([check_if_equal_simulation_group(group, included) for included in result]):
+            result.append(group)
+    return result
 
 def parse_simulation(raw_input: str | list[str]) -> list[list[str]]:
     args = raw_input if isinstance(raw_input, list) else raw_input.split()
@@ -152,6 +173,25 @@ def get_all_simulation_configs(
     return simulation_pool
 
 
+def check_if_equal_simulation_group(left: list[list[str]], right: list[list[str]]) -> bool:
+    if len(left) != len(right):
+        return False
+    left = left.copy()
+    right = right.copy()
+    while len(left) > 0:
+        sim = left.pop()
+        idx_of_identical = None
+        for i, sim_r in enumerate(right):
+            if check_if_equal_simulations(sim, sim_r):
+                idx_of_identical = i
+                break
+        if idx_of_identical is None:
+            return False
+        right.pop(idx_of_identical)
+    return True
+
+
+
 def parse_raw(raw_input: str) -> list[list[list[str]]]:
 
     tidy_input: list[str] = []
@@ -194,8 +234,6 @@ def parse_raw(raw_input: str) -> list[list[list[str]]]:
     if group:
         grouped.append(group)
 
-    print(grouped)
-
     expanded_paterns: list[list[str]] = []
     for pattern in remove_patterns:
         exp_pattern = parse_simulation(pattern)
@@ -206,18 +244,20 @@ def parse_raw(raw_input: str) -> list[list[list[str]]]:
         expanded_groups = []
         for config in group:
             expanded_group = parse_simulation(config)
-            expanded_group = filter_simulations(expanded_group, expanded_paterns)
+            expanded_group = filter_simulations(expanded_group, expanded_paterns + ILLEGAL_PATTERNS)
 
             if not expanded_group:
                 print(f'Entire line: "{config}" matches a remove pattern! ' 
                       'Removing it and simulations it would run in paralell with from the pool...')
 
             expanded_groups.append(expanded_group)
-        result.extend(list(itertools.product(*expanded_groups)))
+        result.extend([list(group) for group in itertools.product(*expanded_groups)])
 
     for configs in result:
         for i,config in enumerate(configs):
             if config[-1].startswith("#"):
                 config.remove(config[-1])
+
+    result = deduplicate_simulation_pools(result)
 
     return result

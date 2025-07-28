@@ -61,8 +61,16 @@ gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update gpu
 gmx mdrun -s file.tpr -ntomp 6 -bonded gpu -update cpu
 ```
 
-> [!IMPORTANT]
-> Looking for ideas how to define paralell simulations... I implemented one, but I'm not sure if it's good. 
+
+#### Configurations that are right next to each other and share the @ symbol will be run in paralell.
+```markdown
+@gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update cpu -pinoffset 0
+@gmx mdrun -s file.tpr -ntomp 6 -bonded cpu -update cpu -pinoffset 6
+
+@gmx mdrun -s file.tpr -ntomp 12 -bonded cpu -update cpu -pinoffset 0
+@gmx mdrun -s file.tpr -ntomp 12 -bonded cpu -update cpu -pinoffset 12
+```
+#### First pair will run in paralell, as well as the second pair. Empty spaces separate what should run together.
 
 > [!IMPORTANT]
 > Not sure how to specify enviromental variables in a file... 

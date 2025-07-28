@@ -119,7 +119,7 @@ class Simulation:
         # as we buffer on per-line basis
         csvhandle = open(self.perf_log, "w", buffering=1)
         csv_writer = csv.writer(csvhandle)
-        outfile_handle = open(os.path.join(self.run_dir, "outfile.txt"), "w",  buffering=1)
+        outfile_handle = open(os.path.join(self.run_dir, "outfile.txt"), "w")
 
         for line in pipe:
             if save_out:

@@ -1,10 +1,13 @@
 import argparse
 import sys
 from pathlib import Path
-from .configs_parsing import parse_raw 
+from .configs_parsing import parse_raw
+from .simulation_handler import Simulation
+from .track import run_simulations, SimulationGroupResult, SimulationStatus, SimulationResult
 import os
 import re
 import logging
+import time
 
 BIG_MESSAGE_WIDTH = 40
 
@@ -79,12 +82,14 @@ def handle_commandline():
     parser.add_argument(
         "--only-configurations",
         action="store_true",
-        help="Stops the program after printing configurations.",
+        help="TODO! Add this back. Stops the program after printing configurations.",
     )
 
     args = parser.parse_args()
 
     return args
+
+
 
 
 def get_numeric_suffix(name: str) -> int:
@@ -172,7 +177,7 @@ def main():
                 f"{stripped_basename}_{max_number_suffix+1}"
             )
 
-    print(f"RUN DIR: {run_dir_path}")
+    print(f"RUNS DIR: {run_dir_path}")
     run_dir_path.mkdir(parents=True, exist_ok=True)
 
     cli_log = run_dir_path.joinpath("cli.log")
@@ -184,3 +189,35 @@ def main():
         format="%(asctime)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+    
+    results: list[SimulationGroupResult] = [] 
+
+    for id, configs in enumerate(simulation_pool):
+        print(f"SIMULATION NR {id}".center(30, "-"))
+        config_dir = run_dir_path.joinpath(f"CONFIG_{id}")
+        config_dir.mkdir(parents=True, exist_ok=True)
+        simulations: list[Simulation] = []
+        for sub_id, config in enumerate(configs):
+            run_dir = config_dir.joinpath(f"{sub_id}")
+            run_dir.mkdir(parents=True, exist_ok=True)
+            print(f"CONFIG {id}.{sub_id}: {" ".join(config)}")
+            print(f"CONFIG {id}.{sub_id} DIR: {run_dir}")
+            simulations.append(Simulation(
+                gmx_arguments=config,
+                run_dir=run_dir,
+                necesarry_files=necesarry_sim_files,
+
+            ))
+        config_results = run_simulations(simulations, early_stop=args.early_stop, config_id=id)
+        print(f"RESULT NR {id}".center(30, "-"))
+        print(config_results)
+        results.append(config_results)
+
+    print("OVERALL RESULTS".center(BIG_MESSAGE_WIDTH, "-"))
+    results = [res for res in results if res.overall_status == SimulationStatus.Success]
+    results.sort(key=lambda x: x.total_performance, reverse=True)
+    for res in results:
+        print(f"Config ID: {res.config_id} Total performance: {res.total_performance} Total steps done: {res.total_steps}")
+
+
+    

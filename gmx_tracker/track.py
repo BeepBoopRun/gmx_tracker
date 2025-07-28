@@ -55,8 +55,8 @@ class SimulationResult(NamedTuple):
         run_dir (Path): Absolute Path to directory where simulation ran.
     """
 
-    run_id: int
-    run_sub_id: int
+    config_id: int
+    config_sub_id: int
     status: SimulationStatus
     gmx_arguments: str
     performance: float
@@ -65,8 +65,8 @@ class SimulationResult(NamedTuple):
 
     def __str__(self):
         return f"""\
-Run ID: {self.run_id}
-Run sub-ID: {self.run_sub_id} 
+Config ID: {self.config_id}
+Config sub-ID: {self.config_sub_id} 
 Status: {self.status.name}
 GROMACS arguments: {self.gmx_arguments}
 Measured performance: {self.performance} [ns/day] 
@@ -76,17 +76,46 @@ Steps done: {self.steps_done}"""
 # Probably merging info from individual runs would make this better.
 class SimulationGroupResult(NamedTuple):
     config_id: int
-    status: SimulationStatus
-    total_performance: float
-    total_steps_done: int
-    run_dir: Path
+    sim_results: list[SimulationResult]
+
+    @property
+    def total_performance(self) -> float:
+        return round(sum([result.performance for result in self.sim_results]), 3)
+    
+    @property
+    def total_steps(self) -> float:
+        return sum([result.steps_done for result in self.sim_results])
+    
+    @property
+    def overall_status(self) -> SimulationStatus:
+        return SimulationStatus.Success if all([result.status is SimulationStatus.Success for result in self.sim_results]) else SimulationStatus.Failure
+
+    
 
     def __str__(self):
+    
+        statuses = ""
+        for sub_id, status in enumerate([result.status for result in self.sim_results]):
+            statuses += f"  {sub_id}: {status.name}\n"
+
+        perfs = ""
+        for sub_id, perf in enumerate([result.performance for result in self.sim_results]):
+            perfs += f"  {sub_id}: {round(perf, 3)}\n"
+
+        steps = ""
+        for sub_id, step in enumerate([result.steps_done for result in self.sim_results]):
+            steps += f"  {sub_id}: {step}\n"
+
+        
         return f"""\
-Run ID: {self.config_id}
-Status: {self.status.name}
-Total measured performance: {self.total_performance} [ns/day] 
-Total steps done: {self.total_steps_done}"""
+Config ID: {self.config_id}
+Status: {self.overall_status.name}
+{statuses[:-1]}
+Total measured performance: {self.total_performance} [ns/day]
+{perfs[:-1]}
+Total steps done: {self.total_steps}
+{steps[:-1]}"""
+
 
 
 def get_numeric_suffix(name: str) -> int:
@@ -147,7 +176,7 @@ def specify_hardware_usage(
 def stringify_arguments(args: list[str]) -> str:
     return " ".join(args)
 
-def running_sim_summary(sim: Simulation, run_id: int, run_sub_id: int = 0) -> None:
+def running_sim_summary(sim: Simulation, config_id: int, config_sub_id: int = 0) -> None:
     tune_status = "Finished" if sim.is_tuned() else "In progress"
     format = lambda x: round(x, ROUND_PRECISION) if x is not None else "NA"
     optimal_window = minimum_performance_window(sim.run_dir)
@@ -166,7 +195,7 @@ def running_sim_summary(sim: Simulation, run_id: int, run_sub_id: int = 0) -> No
             relative_perf = f"{round(100 * (prev_perf1/prev_perf2 - 1), 3)}%"
 
     print(
-        f"{run_id}.{run_sub_id}: Steps done: {sim.steps[-1]}, Tuning status: {tune_status}, Performance last (200, 500, 1000) steps: "
+        f"{config_id}.{config_sub_id}: Steps done: {sim.steps[-1]}, Tuning status: {tune_status}, Performance last (200, 500, 1000) steps: "
         f"({format(sim.current_performance(200))}, {format(sim.current_performance(500))}, {format(sim.current_performance(1000))}) [ns/day], "
         f"Relative change in perf: {relative_perf if relative_perf is not None else 'NA'}"
     )
@@ -201,7 +230,65 @@ def stop_policy(sim: Simulation):
 
     return ratio > 1 - MAXIMUM_PERCENT_CHANGE and ratio < 1 + MAXIMUM_PERCENT_CHANGE
 
-def main():
+def run_simulations(sims: list[Simulation], config_id: int=0, early_stop: bool=True, print_info: bool=True) -> SimulationGroupResult:
+    for sim in sims:
+        sim.start()
+    
+    assert all([sim.gmx_process is not None for sim in sims])
+    start_time = datetime.now()
+    sims_info: list[dict[str, int]] = [{"last_step": 0}.copy() for sim in sims]
+
+    while any([sim.gmx_process.poll() is None for sim in sims]):
+        time.sleep(REFRESH_TIME)
+
+        for config_sub_id, (sim, sim_info) in enumerate(zip(sims, sims_info)):
+            if sim.has_printed == False:
+                print(f"{config_id}.{config_sub_id}: Simulation not yet started.")
+                if (datetime.now() - start_time).total_seconds() > WAITING_TIME:
+                    sim.kill()
+            elif len(sim.steps) > 0 and sim_info["last_step"] != sim.steps[-1]:
+                running_sim_summary(
+                    sim, config_id=config_id, config_sub_id=config_sub_id
+                )
+                sim_info["last_step"] = sim.steps[-1]
+        if (
+            early_stop
+            and all([stop_policy(sim) for sim in sims])
+            or any([sim.gmx_process.poll() is not None for sim in sims])
+        ):
+            for sim in sims:
+                sim.kill()
+
+    results: list[SimulationResult] = []
+    for sub_id, sim in enumerate(sims):
+
+        optimal_window = minimum_performance_window(sim.run_dir)
+        perf = 0.0
+        if optimal_window is not None and len(sim.steps) > 0:
+            perf = (
+                sim.performance(
+                    sim.steps[-1] - optimal_window * 2 - 100,
+                    sim.steps[-1] - 100,
+                )
+                or 0.0
+            )
+        results.append(SimulationResult(
+            config_id=config_id,
+            config_sub_id=sub_id,
+            status=SimulationStatus.Success if len(sim.steps) > 1 else SimulationStatus.Failure,
+            gmx_arguments=" ".join(sim.gmx_arguments),
+            performance=perf,
+            steps_done=sim.steps[-1] if len(sim.steps) > 0 else 0,
+            run_dir=sim.run_dir
+        ))
+
+    return SimulationGroupResult(
+        config_id=config_id,
+        sim_results=results
+    )
+
+def old_main():
+    sys.exit(1)
     from gmx_tracker.cli import handle_commandline
     args = handle_commandline()
 
